@@ -13,14 +13,18 @@ export function messageToStream(message, stream) {
   );
 }
 
-export function streamToLog(stream) {
+export function streamToLog(stream, logJoke) {
   pipe(
     stream.source,
     (source) => lp.decode(source),
     (source) => map(source, (buf) => uint8ArrayToString(buf.subarray())),
     async function (source) {
+      // console.log('[source]', source);
       for await (const msg of source) {
-        console.log('> ' + msg.toString().replace('\n', ''));
+        // console.log('> ' + msg.toString().replace('\n', ''));
+        const data = JSON.parse(msg.toString().replace('\n', ''));
+        // console.log('[check parsed data]', data);
+        logJoke(data.cid, 'remotePeer', data.data)
       }
     }
   );

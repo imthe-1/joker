@@ -10,7 +10,10 @@ import { createLibp2p } from 'libp2p';
 import { webSockets } from '@libp2p/websockets';
 import { createFromPrivKey } from '@libp2p/peer-id-factory';
 import { generateKeyPair, importKey } from '@libp2p/crypto/keys';
+import { EventEmitter } from 'events';
 import { peerData } from './util/config.js';
+
+EventEmitter.defaultMaxListeners = 100;
 
 // const newKeypair = await generateKeyPair('secp256k1');
 // const exported = await newKeypair.export('');
