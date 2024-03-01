@@ -15,7 +15,18 @@ If 10 joker nodes join the network, then every node should log the same 10 jokes
 fork this repo
 clone your fork
 cd joker
-npm install
+npm install // pure libp2p requires nodejs v20.x
+```
+
+To run the hyperswarm based joker network
+```
 npm run server
 ```
 
+To run the pure libp2p based joker network:
+
+Start a single bootstrapper node. Then start peer nodes in different terminals using the next command.
+```
+npm run bootstrapper:libp2p // execute once
+npm run server:libp2p // starts a peer node
+```

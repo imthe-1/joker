@@ -6,6 +6,8 @@
   "main": "server.js",
   "scripts": {
     "server": "node server.js",
+    "bootstrapper:libp2p": "node bootstrapper/index.js",
+    "server:libp2p": "node network.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
