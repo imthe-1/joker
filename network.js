@@ -16,8 +16,6 @@ import { peerData } from './util/config.js';
 import axios from 'axios';
 import { EventEmitter } from 'events';
 import { LevelDatastore } from 'datastore-level';
-import { createMessageHandler } from '@organicdesign/libp2p-message-handler';
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
 
 const datastore = new LevelDatastore(`.ipfs-${Date.now()}`);
 await datastore.open();
@@ -167,7 +165,6 @@ try {
   setInterval(async () => {
     try {
       await main();
-      // console.log('[conns]', JSON.stringify(conns));
     } catch (error) {
       console.error(`Error: ${error}`);
     }
