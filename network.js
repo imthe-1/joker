@@ -66,13 +66,12 @@ try {
   };
 
   const bootsMA = peerData.ma;
-  // console.log('[bootstrapper MA]', bootsMA);
+  console.log('[bootstrapper MA]', bootsMA);
 
   const node = await createNode(bootsMA);
 
   node.addEventListener('peer:discovery', async (evt) => {
     const peer = evt.detail;
-    // console.log('[check peer]', peer);
     console.log(`Peer ${node.peerId.toString()} discovered: ${peer.id.toString()}`);
 
     let peerMA = peer.multiaddrs[1]?.toString();
@@ -90,18 +89,12 @@ try {
 
   node.addEventListener('peer:disconnect', (evt) => {
     const remotePeer = evt.detail;
-    // console.log('disconnected from: ', remotePeer.toString());
     conns[remotePeer.toString()] = '';
   });
 
   await node.handle('/mdip/p2p/1.0.0', async ({ stream }) => {
     streamToLog(stream, logJoke);
-    // messageToStream(json, stream);
   });
-  // console.log('[past handler]');
-
-  // console.log('node ready, listening on:');
-  // console.log(node.getMultiaddrs());
 
   async function getJoke() {
     const response = await axios.get('https://icanhazdadjoke.com/', {
@@ -139,7 +132,6 @@ try {
   async function relayJoke(msg) {
     const json = JSON.stringify(msg);
 
-    // console.log('[check conns]', Object.keys(conns));
     for (const conn in conns) {
       const stream = conns[conn];
       if (stream) {

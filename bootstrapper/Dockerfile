@@ -5,13 +5,13 @@ FROM node:20
 WORKDIR /app
 
 # Copy package.json and package-lock.json to the working directory
-COPY *.json ./
+COPY ../*.json ./
 
 # Install dependencies
 RUN npm ci
 
 # Copy app
-COPY . ./src
+COPY ../. ./src
 
 # Run...
-CMD ["node", "src/network.js"]
+CMD ["node", "src/bootstrapper/index.js"]
