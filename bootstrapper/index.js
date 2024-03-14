@@ -11,7 +11,9 @@ import { webSockets } from '@libp2p/websockets';
 import { createFromPrivKey } from '@libp2p/peer-id-factory';
 import { generateKeyPair, importKey } from '@libp2p/crypto/keys';
 import { EventEmitter } from 'events';
-import { peerData } from '../util/config.js';
+import { peerData, swarmKey } from '../util/config.js';
+import { preSharedKey } from '@libp2p/pnet';
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
 
 EventEmitter.defaultMaxListeners = 100;
 
@@ -20,14 +22,15 @@ EventEmitter.defaultMaxListeners = 100;
 // console.log('[exported]', exported);
 const keypair = await importKey(peerData.encryptedKey, peerData.password);
 const peerId = await createFromPrivKey(keypair);
+const psk = uint8ArrayFromString(swarmKey);
 
 const createNode = async (bootstrappers = [], opts = {}) => {
   const config = {
     addresses: {
       listen: ['/ip4/0.0.0.0/tcp/0'],
     },
-    transports: [tcp(), webSockets()],
-    streamMuxers: [yamux(), mplex()],
+    transports: [tcp()],
+    streamMuxers: [mplex()], // yamux(),
     connectionEncryption: [noise()],
     peerDiscovery: [
       pubsubPeerDiscovery({
@@ -38,6 +41,9 @@ const createNode = async (bootstrappers = [], opts = {}) => {
       pubsub: floodsub(),
       identify: identify(),
     },
+    connectionProtector: preSharedKey({
+      psk,
+    }),
     ...opts,
   };
 

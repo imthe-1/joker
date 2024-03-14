@@ -12,13 +12,23 @@ import { createLibp2p } from 'libp2p';
 import { multiaddr } from '@multiformats/multiaddr';
 import { webSockets } from '@libp2p/websockets';
 import { messageToStream, streamToLog } from './util/stream.js';
-import { peerData } from './util/config.js';
+import { peerData, swarmKey } from './util/config.js';
 import axios from 'axios';
 import { EventEmitter } from 'events';
-import { LevelDatastore } from 'datastore-level';
+import { preSharedKey, generateKey } from '@libp2p/pnet';
+import { toString as uint8ArrayToString } from 'uint8arrays/to-string';
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
 
-const datastore = new LevelDatastore(`.ipfs-${Date.now()}`);
-await datastore.open();
+// Create a Uint8Array and write the swarm key to it
+// const swarmKey = new Uint8Array(95);
+// console.log('[swarmKey]', swarmKey);
+// generateKey(swarmKey);
+const psk = uint8ArrayFromString(swarmKey);
+console.log('[psk]', swarmKey);
+console.log('[psk]', uint8ArrayFromString(swarmKey));
+
+// const datastore = new LevelDatastore(`.ipfs-${Date.now()}`);
+// await datastore.open();
 
 EventEmitter.defaultMaxListeners = 100;
 
@@ -34,8 +44,8 @@ try {
       addresses: {
         listen: ['/ip4/0.0.0.0/tcp/0'],
       },
-      transports: [tcp()], // webSockets()],
-      streamMuxers: [yamux(), mplex()],
+      transports: [tcp()], // , webSockets()
+      streamMuxers: [mplex()],// [yamux(), mplex()],
       connectionEncryption: [noise()],
       peerDiscovery: [
         pubsubPeerDiscovery({
@@ -46,10 +56,17 @@ try {
         pubsub: floodsub(),
         identify: identify(),
       },
-      peerStore: {
-        persistence: true,
-        threshold: 5,
+      connectionManager: {
+        maxConnections: Infinity,
+        minConnections: 5,
       },
+      connectionProtector: preSharedKey({
+        psk,
+      }),
+      // peerStore: {
+      //   persistence: false,
+      //   threshold: 50,
+      // },
       ...opts,
     };
 
@@ -74,9 +91,13 @@ try {
 
     let peerMA = peer.multiaddrs[1]?.toString();
     if (peer.id.toString() && peer.id.toString() !== '16Uiu2HAmKsh1U5QKRRe3KBQdXQT6LGGHanSMGrsawmC119mHN25F') {
-      const sendStream = await node.dialProtocol(peer.id, '/mdip/p2p/1.0.0');
-      sendStream.peerId = peer.id;
-      conns[peer.id.toString()] = sendStream;
+      try {
+        const sendStream = await node.dialProtocol(peer.id, '/mdip/p2p/1.0.0', { maxOutboundStreams: Infinity });
+        sendStream.peerId = peer.id;
+        conns[peer.id.toString()] = sendStream;
+      } catch (error) {
+        console.log('[initial dial] error', error);
+      }
     }
   });
 
@@ -132,9 +153,13 @@ try {
 
     for (const conn in conns) {
       const stream = conns[conn];
-      if (stream) {
-        const sendStream = await node.dialProtocol(stream.peerId, '/mdip/p2p/1.0.0');
-        messageToStream(json, sendStream);
+      if (stream && stream.peerId) {
+        try {
+          const sendStream = await node.dialProtocol(stream.peerId, '/mdip/p2p/1.0.0', { maxOutboundStreams: Infinity, force: true });
+          messageToStream(json, sendStream);
+        } catch (error) {
+          console.log('[check relayJoke error]', error)
+        }
       }
     }
   }
@@ -168,7 +193,7 @@ try {
     } catch (error) {
       console.error(`Error: ${error}`);
     }
-  }, 6e4);
+  }, 1e4);
 } catch (error) {
   console.log('[check error]', error);
 }
