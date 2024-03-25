@@ -14,6 +14,7 @@ import { EventEmitter } from 'events';
 import { peerData, swarmKey } from '../util/config.js';
 import { preSharedKey } from '@libp2p/pnet';
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
+import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 
 EventEmitter.defaultMaxListeners = 100;
 
@@ -29,8 +30,8 @@ const createNode = async (bootstrappers = [], opts = {}) => {
     addresses: {
       listen: ['/ip4/0.0.0.0/tcp/0'],
     },
-    transports: [tcp()],
-    streamMuxers: [mplex()], // yamux(),
+    transports: [tcp(), webSockets()],
+    streamMuxers: [mplex(), yamux()],
     connectionEncryption: [noise()],
     peerDiscovery: [
       pubsubPeerDiscovery({
