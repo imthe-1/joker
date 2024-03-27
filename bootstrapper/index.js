@@ -15,6 +15,7 @@ import { peerData, swarmKey } from '../util/config.js';
 import { preSharedKey } from '@libp2p/pnet';
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
+import { circuitRelayServer } from '@libp2p/circuit-relay-v2'
 
 EventEmitter.defaultMaxListeners = 100;
 
@@ -41,6 +42,7 @@ const createNode = async (bootstrappers = [], opts = {}) => {
     services: {
       pubsub: floodsub(),
       identify: identify(),
+      relay: circuitRelayServer(),
     },
     connectionProtector: preSharedKey({
       psk,

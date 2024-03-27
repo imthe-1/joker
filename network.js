@@ -4,7 +4,7 @@ import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { bootstrap } from '@libp2p/bootstrap';
 import { floodsub } from '@libp2p/floodsub';
-import { gossipsub } from '@chainsafe/libp2p-gossipsub'
+import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { identify } from '@libp2p/identify';
 import { mplex } from '@libp2p/mplex';
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery';
@@ -19,6 +19,7 @@ import { EventEmitter } from 'events';
 import { preSharedKey, generateKey } from '@libp2p/pnet';
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string';
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
+import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
 
 const psk = uint8ArrayFromString(swarmKey);
 console.log('[psk]', swarmKey);
@@ -36,7 +37,13 @@ const createNode = async (bootstrappers = [], opts = {}) => {
     addresses: {
       listen: ['/ip4/0.0.0.0/tcp/0'],
     },
-    transports: [tcp(), webSockets()],
+    transports: [
+      tcp(),
+      webSockets(),
+      circuitRelayTransport({
+        discoverRelays: 2,
+      }),
+    ],
     streamMuxers: [yamux(), mplex()],
     connectionEncryption: [noise()],
     peerDiscovery: [
@@ -78,7 +85,11 @@ node.addEventListener('peer:discovery', async (evt) => {
   console.log(`Peer ${node.peerId.toString()} discovered: ${peer.id.toString()}`);
 
   let peerMA = peer.multiaddrs[1]?.toString();
-  if (peer.id.toString() && peer.id.toString() !== '16Uiu2HAmKsh1U5QKRRe3KBQdXQT6LGGHanSMGrsawmC119mHN25F') {
+  if (peer.id.toString() && peer.id.toString() === '16Uiu2HAmKsh1U5QKRRe3KBQdXQT6LGGHanSMGrsawmC119mHN25F') {
+    const relayAddr = multiaddr(peerData.ma[1]);
+    const conn = await node.dial(relayAddr);
+    console.log(`Connected to the relay ${conn.remotePeer.toString()}`);
+  } else if (peer.id.toString() && peer.id.toString() !== '16Uiu2HAmKsh1U5QKRRe3KBQdXQT6LGGHanSMGrsawmC119mHN25F') {
     try {
       const sendStream = await node.dialProtocol(peer.id, '/mdip/p2p/1.0.0', { maxOutboundStreams: Infinity });
       sendStream.peerId = peer.id;
@@ -97,6 +108,10 @@ node.addEventListener('peer:connect', (evt) => {
 node.addEventListener('peer:disconnect', (evt) => {
   const remotePeer = evt.detail;
   conns[remotePeer.toString()] = '';
+});
+
+node.addEventListener('self:peer:update', (evt) => {
+  console.log(`Advertising with a relay address of ${node.getMultiaddrs()[0].toString()}`);
 });
 
 await node.handle('/mdip/p2p/1.0.0', async ({ stream }) => {
